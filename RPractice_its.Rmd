@@ -41,21 +41,21 @@ a1 <- readRDS('./Data/line_list_formatted.rds') %>%
 ```
 
 
-### Step 1: Flag deaths in the range J12-J18
+### Step 1: Flag deaths in the range J12-J18, as well as non-respiratory deaths
 
 ```{r}
 
 ```
 
 
-### Step 2: Create a time series for J12-J18 and all-cause deaths
+### Step 2: Create a time series for J12-J18 and all-non-respiratory deaths
 
 ```{r}
 
 ```
 
 
-### Step 3: Plot your time series for J12:J18 and J12_J18/all-cause
+### Step 3: Plot your time series for J12:J18 and J12_J18/all-non-respiratory
 
 ```{r}
 
@@ -89,24 +89,24 @@ ESCAPE HATCH 2: In case you don't have the variables needed for the ITS analysis
 
 Will you use Poisson or negative binomial models here?
 
-Model 1: Trend +seasonality + post vaccine binary variables +offset(ACM)
+Model 1: Trend +seasonality + post vaccine binary variables +offset(ACM_noJ)
 ```{r}
 
 ```
 
-Model 2: Trend +seasonality + post vaccine splines +offset(ACM)
-
-```{r}
-
-```
-
-Model 3: seasonality + post vaccine binary variables+offset(ACM)
+Model 2: Trend +seasonality + post vaccine splines +offset(ACM_noJ)
 
 ```{r}
 
 ```
 
-Model 4: seasonality + post vaccine splines+offset(ACM)
+Model 3: seasonality + post vaccine binary variables+offset(ACM_noJ)
+
+```{r}
+
+```
+
+Model 4: seasonality + post vaccine splines+offset(ACM_noJ)
 
 ```{r}
 
