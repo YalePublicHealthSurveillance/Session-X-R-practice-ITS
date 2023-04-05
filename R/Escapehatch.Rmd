@@ -1,0 +1,212 @@
+---
+title: "R practice ITS"
+author: "Dan Weinberger"
+date: '2023-04-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+```
+
+The 10-valent pneumococcal conjugate vaccine was introduced in country X in August 2010
+
+```{r}
+# a1 <- read_excel('Data/raw_data_u5.xlsx') %>%
+#   filter(!is.na(DOB) & DOB>='2003-01-01') %>%
+#   rename(death_date=`Date of death`, icd1=`Cause of death`) %>%
+#   mutate(aged=as.numeric(difftime(death_date, DOB, units = "days")),
+#          agem=round(aged/30.3)) %>%
+#   select(agem, death_date, icd1 ) %>%
+# filter(agem>=2)
+# saveRDS(a1,'./Data/line_list_formatted.rds')
+```
+
+```{r}
+a1 <- readRDS('../Data/line_list_formatted.rds')
+```
+
+## Part 1: Prepare your data
+
+### Step 0: Create a histogram of the age distribution, check the range of ages and dates
+
+```{r}
+hist(a1$agem)
+
+range(a1$agem)
+```
+
+
+### Step 1: Flag deaths in the range J12-J18
+
+```{r}
+
+a1 <- a1 %>%
+  mutate( J12_J18 = if_else( icd1 %in% c('J12','J13','J14','J15','J16','J17','J18'),1,0),
+          acm_noJ = 1-(substr(icd1,1,1)=='J') 
+          )
+
+
+```
+
+
+### Step 2: Create a time series for J12-J18 and all-cause deaths
+
+```{r}
+
+ts1 <- a1 %>%
+  mutate(date=as.Date(floor_date(death_date, 'month'))) %>%
+  group_by(date) %>%
+  summarize(J12_J18=sum(J12_J18), acm_noJ= sum(acm_noJ)) %>%
+  filter(date>='2005-01-01')
+
+saveRDS(ts1, '../Data/formatted_ts.rds')
+```
+
+
+### Step 3: Plot your time series for J12:J18 and J12_J18/all-cause
+
+```{r}
+
+p1 <- ggplot(ts1, aes(x=date, y=J12_J18) ) +
+  geom_line() +
+  theme_classic() +
+  ylim(0, NA)
+p1
+```
+
+## Part 2: ITS
+
+### Step 1: Create variables for pre/post periods 
+-what are the time periods you will use?
+- Create an index variable to capture trends
+- Create a monthly factor variable OR sine and cosine terms for seasonality
+-Create binary variables for pre/post periods
+-Create linear splines to allow trend to change at hinge points
+
+```{r}
+
+ post1_index= which(ts1$date=='2010-08-01')
+ post2_index= which(ts1$date=='2011-08-01')
+
+ts1 <- ts1 %>%
+  arrange(date) %>%
+  mutate(index=row_number(),
+         month=as.factor(month(date)),
+         sin12=sin(2*pi*index/12),
+         cos12=cos(2*pi*index/12),
+         
+         post1 = if_else(date>='2010-08-01',1,0),
+         post2 = if_else(date>='2011-08-01',1,0),
+         
+                 spl1 = if_else(date>='2010-08-01', index-post1_index+1,0),
+         spl2 = if_else(date>='2011-08-01', index-post2_index+1,0)
+                  
+    )
+  
+  saveRDS(ts1, '../Data/formatted_ts_with_its.rds')
+
+```
+
+
+### Step 2: Fit and compare models
+
+Will you use Poisson or negative binomial models here?
+
+Model 1: Trend +seasonality + post vaccine binary variables+offset(ACM)
+```{r}
+mod1 <- glm(J12_J18 ~ month +index +post1 +post2  + offset(log(acm_noJ)), data=ts1, family='poisson')
+
+summary(mod1)
+```
+
+Model 2: Trend +seasonality + post vaccine splines+offset(ACM)
+
+```{r}
+mod2 <- glm(J12_J18 ~ month +index +spl1 +spl2 + offset(log(acm_noJ)), data=ts1, family='poisson')
+
+summary(mod2)
+
+```
+
+Model 3: seasonality + post vaccine binary variables+offset(ACM)
+
+```{r}
+mod3 <- glm(J12_J18 ~ month + post1 +post2 + offset(log(acm_noJ)), data=ts1, family='poisson')
+
+summary(mod3)
+
+```
+
+Model 4: seasonality + post vaccine splines +offset(ACM)
+
+```{r}
+mod4 <- glm(J12_J18 ~ month + spl1 +spl2 + offset(log(acm_noJ)), data=ts1, family='poisson')
+
+summary(mod4)
+
+```
+```{r}
+mod5 <- glm(J12_J18 ~ month +index +post1 +post2  + index*post1 + index*post2 + offset(log(acm_noJ)), data=ts1, family='poisson')
+
+summary(mod5)
+```
+Compare the AIC scores
+
+```{r}
+AIC(mod1,mod2, mod3, mod4, mod5)
+```
+
+
+
+
+### Step 3: Calculate Fitted, counterfactual, and Rate ratio for best model
+
+Generate fitted value using predict()
+```{r}
+ts1$pred1 <- predict(mod1, type='response')
+```
+
+Generate counterfactual fitted values by zeroing out the vaccine effects
+
+```{r}
+ts1.counter <- ts1 %>%
+  mutate(post1=0,
+         post2=0,
+         spl1=0,
+         spl2=0)
+
+ts1$pred1.cf <- predict(mod1, newdata=ts1.counter, type='response')
+
+
+```
+
+```{r}
+ p1 +
+  geom_line(data=ts1, aes(x=date, y=pred1, color='red')) +
+    geom_line(data=ts1, aes(x=date, y=pred1.cf, color='blue'))
+```
+
+
+Calculate the rate ratio for the last time point
+```{r}
+ts1 <- ts1 %>%
+  mutate(RR =pred1/pred1.cf,
+              deaths_averted=pred1.cf-pred1)
+
+ts1$RR[nrow(ts1)]
+
+plot(ts1$RR)
+```
+
+Calculate lives saved during the post-vaccine period
+
+```{r}
+ts1 %>%
+  summarize(deaths_averted= round(sum(deaths_averted),-2))
+```
+

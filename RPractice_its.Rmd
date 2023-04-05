@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(lubridate)
+library(MASS)
 library(ggplot2)
 library(readxl)
 ```
@@ -27,7 +28,8 @@ The 10-valent pneumococcal vaccine was introduced in country X in August 2010
 ```
 
 ```{r}
-a1 <- readRDS('./Data/line_list_formatted.rds')
+a1 <- readRDS('./Data/line_list_formatted.rds') %>%
+  filter(death_date>='2005-01-01')
 ```
 
 ## Part 1: Prepare your data
@@ -68,35 +70,71 @@ a1 <- readRDS('./Data/line_list_formatted.rds')
 -Create binary variables for pre/post periods
 -Create linear splines to allow trend to change at hinge points
 
+ESCAPE HATCH 1: in case you haven't succeeded in creating a time series, start from here
+```{r, eval=F}
+ts1 <- readRDS( './Data/formatted_ts.rds')
+```
+
 ```{r}
 
 ```
 
 ### Step 2: Fit and compare models
 
+ESCAPE HATCH 2: In case you don't have the variables needed for the ITS analysis, start here
+```{r}
+ ts1 <- readRDS('./Data/formatted_ts_with_its.rds')
+
+```
+
 Will you use Poisson or negative binomial models here?
 
-Model 1: Trend +seasonality + post vaccine binary variables
+Model 1: Trend +seasonality + post vaccine binary variables +offset(ACM)
 ```{r}
 
 ```
 
-Model 2: Trend +seasonality + post vaccine splines
-
-```{r}
-
-```
-
-Model 3: seasonality + post vaccine binary variables
+Model 2: Trend +seasonality + post vaccine splines +offset(ACM)
 
 ```{r}
 
 ```
 
-Model 4: seasonality + post vaccine splines
+Model 3: seasonality + post vaccine binary variables+offset(ACM)
 
 ```{r}
 
 ```
 
-### Step 3: 
+Model 4: seasonality + post vaccine splines+offset(ACM)
+
+```{r}
+
+```
+
+### Step 3: Calculate Fitted, counterfactual, and Rate ratio for best model
+
+Generate fitted value using predict()
+```{r}
+
+```
+
+Generate counterfactual fitted values by zeroing out the vaccine effects
+
+```{r}
+
+```
+
+add these to your plot of observed values
+
+```{r}
+```
+
+Calculate the rate ratio for the last time point
+```{r}
+
+```
+
+Calculate lives saved during the post-vaccine period
+
+
