@@ -1,0 +1,102 @@
+---
+title: "R practice ITS"
+author: "Dan Weinberger"
+date: '2023-04-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+```
+
+The 10-valent pneumococcal vaccine was introduced in country X in August 2010
+
+```{r}
+# a1 <- read_excel('Data/raw_data_u5.xlsx') %>%
+#   filter(!is.na(DOB) & DOB>='2003-01-01') %>%
+#   rename(death_date=`Date of death`, icd1=`Cause of death`) %>%
+#   mutate(aged=as.numeric(difftime(death_date, DOB, units = "days")),
+#          agem=round(aged/30.3)) %>%
+#   select(agem, death_date, icd1 ) %>%
+# filter(agem>=2)
+# saveRDS(a1,'./Data/line_list_formatted.rds')
+```
+
+```{r}
+a1 <- readRDS('./Data/line_list_formatted.rds')
+```
+
+## Part 1: Prepare your data
+
+### Step 0: Create a histogram of the age distribution, check the range of ages and dates
+
+```{r}
+
+```
+
+
+### Step 1: Flag deaths in the range J12-J18
+
+```{r}
+
+```
+
+
+### Step 2: Create a time series for J12-J18 and all-cause deaths
+
+```{r}
+
+```
+
+
+### Step 3: Plot your time series for J12:J18 and J12_J18/all-cause
+
+```{r}
+
+```
+
+## Part 2: ITS
+
+### Step 1: Create variables for pre/post periods 
+-what are the time periods you will use?
+- Create an index variable to capture trends
+- Create a monthly factor variable OR sine and cosine terms for seasonality
+-Create binary variables for pre/post periods
+-Create linear splines to allow trend to change at hinge points
+
+```{r}
+
+```
+
+### Step 2: Fit and compare models
+
+Will you use Poisson or negative binomial models here?
+
+Model 1: Trend +seasonality + post vaccine binary variables
+```{r}
+
+```
+
+Model 2: Trend +seasonality + post vaccine splines
+
+```{r}
+
+```
+
+Model 3: seasonality + post vaccine binary variables
+
+```{r}
+
+```
+
+Model 4: seasonality + post vaccine splines
+
+```{r}
+
+```
+
+### Step 3: 
